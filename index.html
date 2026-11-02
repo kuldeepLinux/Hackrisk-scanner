@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HackRisk Scanner | Hexbytes by Kuldeep</title>
+<meta name="description" content="Website security risk score checker by Kuldeep — Cyber Security Executive, Hexbytes.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0a0e14; --card: #131a24; --green: #00ff9d;
+    --cyan: #00d9ff; --text: #c9d1d9; --muted: #8b949e; --border: #1f2937;
+  }
+  body {
+    font-family: 'SF Mono', 'Courier New', monospace;
+    background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(0,255,157,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(0,217,255,0.06) 0%, transparent 40%);
+  }
+  .container { max-width: 800px; margin: auto; padding: 2rem 1.5rem; }
+  header { text-align: center; padding: 2rem 0 1rem; }
+  .logo {
+    font-size: 2.2rem; font-weight: 800; letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .logo::before { content: ">_ "; color: var(--green); }
+  .tagline { color: var(--muted); margin-top: 0.4rem; font-size: 0.9rem; }
+  .tagline span { color: var(--green); }
+  .back { display: inline-block; margin-top: 0.8rem; color: var(--cyan); text-decoration: none; font-size: 0.85rem; }
+  .back:hover { text-decoration: underline; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .scanner-input { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .scanner-input input {
+    flex: 1; min-width: 200px; padding: 0.9rem 1rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font-family: inherit; font-size: 1rem; outline: none;
+  }
+  .scanner-input input:focus { border-color: var(--green); }
+  .scanner-input button {
+    padding: 0.9rem 1.5rem; background: linear-gradient(90deg, var(--green), var(--cyan));
+    border: none; border-radius: 6px; color: #0a0e14; font-weight: 700;
+    font-family: inherit; cursor: pointer; font-size: 0.95rem;
+  }
+  .scanner-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #result { margin-top: 1.5rem; display: none; }
+  .result-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .result-row:last-child { border-bottom: none; }
+  .score-box { text-align: center; padding: 1.8rem; border-radius: 8px; margin-top: 1.2rem; }
+  .score-number { font-size: 3.2rem; font-weight: 800; }
+  .score-label { font-size: 1.1rem; margin-top: 0.3rem; font-weight: 700; }
+  .low { background: rgba(0,255,157,0.1); border: 1px solid var(--green); }
+  .low .score-number, .low .score-label { color: var(--green); }
+  .medium { background: rgba(255,200,0,0.1); border: 1px solid #ffc800; }
+  .medium .score-number, .medium .score-label { color: #ffc800; }
+  .high { background: rgba(255,60,60,0.1); border: 1px solid #ff3c3c; }
+  .high .score-number, .high .score-label { color: #ff3c3c; }
+  .disclaimer { font-size: 0.8rem; color: var(--muted); margin-top: 1rem; padding: 0.8rem; background: rgba(255,255,255,0.03); border-left: 3px solid var(--cyan); border-radius: 4px; }
+  footer { text-align: center; padding: 2rem 0; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+  footer a { color: var(--cyan); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">HackRisk Scanner</div>
+    <p class="tagline">⬡ Hexbytes — Made by <span>Kuldeep</span>, Cyber Security Executive</p>
+    <a class="back" href="https://kuldeeplinux.github.io/Hex-kuldeep/">← Back to portfolio</a>
+  </header>
+
+  <div class="card">
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Website ka URL daalo aur uski security risk score jaano.</p>
+    <div class="scanner-input">
+      <input type="text" id="urlInput" placeholder="example.com" autocomplete="off">
+      <button id="scanBtn" onclick="scanWebsite()">Scan</button>
+    </div>
+    <div id="result"></div>
+    <div class="disclaimer">⚠️ Sirf known security misconfigurations par based risk score. Real hacking probability unpredictable hoti hai. Apni ya authorized websites par hi use karo.</div>
+  </div>
+
+  <footer>
+    <p>⬡ <strong>Hexbytes</strong> — Made by Kuldeep · <a href="https://github.com/kuldeepLinux" target="_blank">GitHub</a></p>
+    <p style="margin-top:0.4rem;font-size:0.8rem;">© 2026 Hexbytes</p>
+  </footer>
+</div>
+
+<script>
+async function scanWebsite() {
+  const urlInput = document.getElementById('urlInput');
+  const btn = document.getElementById('scanBtn');
+  const result = document.getElementById('result');
+  let url = urlInput.value.trim();
+  if (!url) { alert('URL daalo pehle!'); return; }
+  if (!url.startsWith('http')) url = 'https://' + url;
+  btn.disabled = true; btn.textContent = 'Scanning...'; result.style.display = 'none';
+  try {
+    const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const resp = await fetch(proxy);
+    const headers = {};
+    resp.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+    const resolved = await Promise.all([checkHTTPS(url), checkHeaders(headers), checkServerLeak(headers), checkRobots(url)]);
+    let total = 0, html = '';
+    resolved.forEach(({ score, msg }) => { total += score; html += `<div class="result-row"><span>${msg}</span><span>+${score}</span></div>`; });
+    total = Math.min(total, 100);
+    let cls, label, advice;
+    if (total >= 60) { cls = 'high'; label = '🔴 HIGH RISK'; advice = 'Turant security fix karo!'; }
+    else if (total >= 30) { cls = 'medium'; label = '🟡 MEDIUM RISK'; advice = 'Kuch gaps hain — fix karna chahiye.'; }
+    else { cls = 'low'; label = '🟢 LOW RISK'; advice = 'Security posture accha hai!'; }
+    html += `<div class="score-box ${cls}"><div class="score-number">${total}/100</div><div class="score-label">${label}</div><div style="margin-top:0.6rem;font-size:0.9rem;">${advice}</div></div>`;
+    result.innerHTML = html; result.style.display = 'block';
+  } catch (e) {
+    result.innerHTML = `<p style="color:#ff3c3c;">❌ Scan failed: ${e.message}</p>`;
+    result.style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = 'Scan'; }
+}
+function checkHTTPS(url) {
+  return url.startsWith('https://') ? { score: 0, msg: '✅ HTTPS enabled' } : { score: 20, msg: '❌ HTTP only (no encryption)' };
+}
+function checkHeaders(h) {
+  const required = ['strict-transport-security','content-security-policy','x-frame-options','x-content-type-options'];
+  const missing = required.filter(k => !h[k]);
+  return missing.length === 0 ? { score: 0, msg: '✅ Security headers present' } : { score: missing.length * 10, msg: `❌ Missing: ${missing.join(', ')}` };
+}
+function checkServerLeak(h) {
+  if (h['server'] || h['x-powered-by']) return { score: 10, msg: `⚠️ Version leak: ${h['server'] || h['x-powered-by']}` };
+  return { score: 0, msg: '✅ No version leak' };
+}
+async function checkRobots(url) {
+  try {
+    const base = new URL(url).origin;
+    const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(base + '/robots.txt'));
+    const text = await r.text();
+    const risky = text.split('\n').filter(l => /disallow/i.test(l) && /(admin|backup|\.git|config)/i.test(l));
+    if (risky.length) return { score: 10, msg: `⚠️ robots.txt leaks: ${risky.length} sensitive paths` };
+    return { score: 0, msg: '✅ robots.txt clean' };
+  } catch { return { score: 0, msg: 'ℹ️ robots.txt not reachable' }; }
+}
+</script>
+</body>
+</html>
