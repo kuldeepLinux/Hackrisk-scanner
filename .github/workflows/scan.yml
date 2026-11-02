@@ -1,0 +1,26 @@
+name: Security Scanner
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan'
+        required: true
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run Scan
+        run: |
+          echo "## Scan Result for ${{ github.event.inputs.target_url }}" > result.md
+          echo '```' >> result.md
+          curl -s -I -L "${{ github.event.inputs.target_url }}" >> result.md
+          echo '```' >> result.md
+      - name: Commit Result
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add result.md
+          git commit -m "Scan results" || echo "No changes"
+          git push
