@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexbytes CyberSec Dashboard | Kuldeep</title>
+<style>
+  /* --- CORE VARIABLES --- */
+  :root {
+    --bg: #05080d;
+    --sidebar: #0a0f16;
+    --card: #0d131c;
+    --green: #00ff9d;
+    --cyan: #00d9ff;
+    --red: #ff3c3c;
+    --yellow: #ffc800;
+    --text: #c9d1d9;
+    --muted: #6e7681;
+    --border: #1f2937;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- SIDEBAR --- */
+  .sidebar {
+    width: 260px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: 0.3s;
+  }
+  .brand {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .brand h1 {
+    font-size: 1.5rem;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+  .brand p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+  .menu {
+    list-style: none;
+    padding: 1rem 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .menu li {
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    transition: 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .menu li:hover {
+    background: rgba(0, 255, 157, 0.05);
+    color: var(--text);
+  }
+  .menu li.active {
+    background: rgba(0, 255, 157, 0.1);
+    color: var(--green);
+    border-left-color: var(--green);
+  }
+  .menu li::before {
+    content: "▸";
+    color: var(--cyan);
+  }
+
+  /* --- MAIN CONTENT --- */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-image:
+      linear-gradient(rgba(0,255,157,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,157,0.02) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .topbar {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--sidebar);
+  }
+  .topbar h2 {
+    color: var(--cyan);
+    font-size: 1.1rem;
+  }
+  .status {
+    color: var(--green);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .status::before {
+    content: "";
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--green);
+  }
+
+  /* --- TOOL CONTAINER --- */
+  .tool-container {
+    padding: 2rem;
+    overflow-y: auto;
+    flex: 1;
+    display: none; /* Hide by default */
+  }
+  .tool-container.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* --- UI ELEMENTS --- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  input[type="text"] {
+    flex: 1;
+    padding: 0.8rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--green); }
+  button {
+    padding: 0.8rem 1.5rem;
+    background: var(--green);
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover { background: var(--cyan); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* --- OUTPUT TERMINAL --- */
+  .terminal {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 0.9rem;
+    min-height: 150px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .terminal .ok { color: var(--green); }
+  .terminal .bad { color: var(--red); }
+  .terminal .warn { color: var(--yellow); }
+  .terminal .info { color: var(--cyan); }
+
+  /* --- CTA BOX --- */
+  .cta {
+    background: linear-gradient(135deg, rgba(0,255,157,0.05), rgba(0,217,255,0.05));
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+  .cta h3 { color: var(--green); margin-bottom: 0.5rem; }
+  .cta p { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+  .cta a {
+    display: inline-block;
+    padding: 0.7rem 1.5rem;
+    background: var(--cyan);
+    color: #000;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    transition: 0.2s;
+  }
+  .cta a:hover { background: var(--green); }
+
+  /* --- MOBILE --- */
+  @media (max-width: 768px) {
+    body { flex-direction: column; overflow: auto; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    .menu { display: flex; overflow-x: auto; padding: 0; }
+    .menu li { padding: 1rem; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .menu li.active { border-left: none; border-bottom-color: var(--green); }
+    .main-content { overflow: visible; }
+    .input-group { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>>_ HEXBYTES</h1>
+      <p>Made by Kuldeep | CyberSec</p>
+    </div>
+    <ul class="menu">
+      <li class="active" onclick="switchTool('headers', this)">Security Headers</li>
+      <li onclick="switchTool('dns', this)">DNS Lookup</li>
+      <li onclick="switchTool('ssl', this)">SSL Checker</li>
+      <li onclick="switchTool('robots', this)">Robots.txt Scanner</li>
+      <li onclick="switchTool('ip', this)">IP / Geo Location</li>
+      <li onclick="switchTool('whois', this)">Whois Lookup</li>
+    </ul>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="topbar">
+      <h2 id="pageTitle">Security Headers Scanner</h2>
+      <div class="status">System Online</div>
+    </div>
+
+    <!-- TOOL 1: SECURITY HEADERS -->
+    <div id="headers" class="tool-container active">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Check security headers using API to bypass CORS.</p>
+        <div class="input-group">
+          <input type="text" id="urlHeaders" placeholder="e.g. hexbytes.in">
+          <button onclick="scanHeaders()" id="btnHeaders">Scan Target</button>
+        </div>
+        <div id="termHeaders" class="terminal"></div>
+      </div>
+      <div class="cta">
+        <h3>🛠️ Fix karwana hai?</h3>
+        <p>Yeh security issues professionally fix karwane ke liye Hexbytes experts se contact karein.</p>
+        <a href="https://hexbytes.in/" target="_blank">Contact Hexbytes →</a>
+      </div>
+    </div>
+
+    <!-- TOOL 2: DNS LOOKUP -->
+    <div id="dns" class="tool-container">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Fetch A, MX, TXT records using Google DNS API.</p>
+        <div class="input-group">
+          <input type="text" id="urlDns" placeholder="e.g. google.com">
+          <button onclick="scanDNS()" id="btnDns">Lookup DNS</button>
+        </div>
+        <div id="termDns" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- TOOL 3: SSL CHECKER -->
+    <div id="ssl" class="tool-container">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Check SSL certificate issuer and validity.</p>
+        <div class="input-group">
+          <input type="text" id="urlSsl" placeholder="e.g. github.com">
+          <button onclick="checkSSL()" id="btnSsl">Check SSL</button>
+        </div>
+        <div id="termSsl" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- TOOL 4: ROBOTS.TXT -->
+    <div id="robots" class="tool-container">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Fetch robots.txt using CORS proxy (might fail occasionally).</p>
+        <div class="input-group">
+          <input type="text" id="urlRobots" placeholder="e.g. facebook.com">
+          <button onclick="scanRobots()" id="btnRobots">Fetch Robots.txt</button>
+        </div>
+        <div id="termRobots" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- TOOL 5: IP GEO LOCATION -->
+    <div id="ip" class="tool-container">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Find location of an IP Address using ipapi.co</p>
+        <div class="input-group">
+          <input type="text" id="ipAddress" placeholder="e.g. 8.8.8.8">
+          <button onclick="scanIP()" id="btnIp">Locate IP</button>
+        </div>
+        <div id="termIp" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- TOOL 6: WHOIS -->
+    <div id="whois" class="tool-container">
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--muted);">Domain Registration info via API.</p>
+        <div class="input-group">
+          <input type="text" id="urlWhois" placeholder="e.g. hexbytes.in">
+          <button onclick="scanWhois()" id="btnWhois">Get Whois</button>
+        </div>
+        <div id="termWhois" class="terminal"></div>
+      </div>
+    </div>
+
+  </main>
+
+<script>
+  // UI Switching Logic
+  function switchTool(toolId, element) {
+    // Hide all tools
+    document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
+    // Remove active class from all menu items
+    document.querySelectorAll('.menu li').forEach(el => el.classList.remove('active'));
+    
+    // Show selected tool
+    document.getElementById(toolId).classList.add('active');
+    element.classList.add('active');
+
+    // Update Title
+    const titles = {
+      headers: 'Security Headers Scanner',
+      dns: 'DNS Lookup Tool',
+      ssl: 'SSL Certificate Checker',
+      robots: 'Robots.txt Inspector',
+      ip: 'IP Geo-Locator',
+      whois: 'Whois Domain Lookup'
+    };
+    document.getElementById('pageTitle').innerText = titles[toolId];
+  }
+
+  // Helper for Typing Effect
+  function typeTerminal(elementId, text, colorClass = '') {
+    const term = document.getElementById(elementId);
+    term.style.display = 'block';
+    term.innerHTML += `<span class="${colorClass}">${text}</span>\n`;
+    term.scrollTop = term.scrollHeight;
+  }
+
+  function clearTerminal(elementId) {
+    const term = document.getElementById(elementId);
+    term.style.display = 'block';
+    term.innerHTML = '';
+  }
+
+  // Utility to clean domain
+  function cleanDomain(input) {
+    return input.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+  }
+
+  // --- TOOL 1: SECURITY HEADERS (Using MySSL API) ---
+  async function scanHeaders() {
+    const input = document.getElementById('urlHeaders').value;
+    if(!input) return alert('Enter URL');
+    const domain = cleanDomain(input);
+    const btn = document.getElementById('btnHeaders');
+    
+    btn.disabled = true;
+    clearTerminal('termHeaders');
+    typeTerminal('termHeaders', `root@hexbytes:~# hackrisk -t ${domain}`, 'info');
+
+    try {
+      const res = await fetch(`https://myssl.info/headers/check?q=${domain}`);
+      if(!res.ok) throw new Error('API Limit or Server Down');
+      const data = await res.json();
+      
+      typeTerminal('termHeaders', `[+] Grade: ${data.grade || 'Unknown'}`, 'ok');
+      typeTerminal('termHeaders', `[+] Present: ${(data.headersPresent || []).join(', ') || 'None'}`, 'ok');
+      
+      if(data.headersMissing && data.headersMissing.length > 0) {
+        typeTerminal('termHeaders', `[!] Missing Headers:`, 'bad');
+        data.headersMissing.forEach(h => typeTerminal('termHeaders', `  - ${h}`, 'bad'));
+      } else {
+        typeTerminal('termHeaders', `[✓] Perfect! No missing headers found.`, 'ok');
+      }
+    } catch(e) {
+      typeTerminal('termHeaders', `[X] Error: ${e.message}`, 'bad');
+      typeTerminal('termHeaders', `[i] Could not reach API. Try again later.`, 'warn');
+    }
+    btn.disabled = false;
+  }
+
+  // --- TOOL 2: DNS LOOKUP (Using Google DNS over HTTPS) ---
+  async function scanDNS() {
+    const input = document.getElementById('urlDns').value;
+    if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input);
+    const btn = document.getElementById('btnDns');
+    
+    btn.disabled = true;
+    clearTerminal('termDns');
+    typeTerminal('termDns', `root@hexbytes:~# dig ${domain}`, 'info');
+
+    try {
+      const res = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
+      const data = await res.json();
+      
+      if(data.Answer) {
+        typeTerminal('termDns', `[+] A Records (IP Addresses):`, 'ok');
+        data.Answer.forEach(record => typeTerminal('termDns', `  -> ${record.data}`, 'ok'));
+      } else {
+        typeTerminal('termDns', `[!] No A records found.`, 'warn');
+      }
+    } catch(e) {
+      typeTerminal('termDns', `[X] Error: ${e.message}`, 'bad');
+    }
+    btn.disabled = false;
+  }
+
+  // --- TOOL 3: SSL CHECKER ---
+  async function checkSSL() {
+    const input = document.getElementById('urlSsl').value;
+    if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input);
+    const btn = document.getElementById('btnSsl');
+    
+    btn.disabled = true;
+    clearTerminal('termSsl');
+    typeTerminal('termSsl', `root@hexbytes:~# ssl_check ${domain}`, 'info');
+
+    try {
+      const res = await fetch(`https://api.certspotter.com/v1/issuances?domain=${domain}&include_subdomains=true&expand=dns_names`);
+      
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      
+      if(data.length > 0) {
+        const cert = data[0];
+        typeTerminal('termSsl', `[+] Latest Certificate Found:`, 'ok');
+        typeTerminal('termSsl', `  Issuer: ${cert.issuer.name || 'N/A'}`, 'info');
+        typeTerminal('termSsl', `  Valid From: ${cert.not_before}`, 'info');
+        typeTerminal('termSsl', `  Valid Till: ${cert.not_after}`, 'info');
+        typeTerminal('termSsl', `  Domains: ${cert.dns_names.slice(0,5).join(', ')}...`, 'warn');
+      } else {
+        typeTerminal('termSsl', `[!] No certificates found for this domain.`, 'warn');
+      }
+    } catch(e) {
+      typeTerminal('termSsl', `[X] Error: ${e.message}`, 'bad');
+    }
+    btn.disabled = false;
+  }
+
+  // --- TOOL 4: ROBOTS.TXT (CORS proxy fallback) ---
+  async function scanRobots() {
+    const input = document.getElementById('urlRobots').value;
+    if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input);
+    const btn = document.getElementById('btnRobots');
+    
+    btn.disabled = true;
+    clearTerminal('termRobots');
+    typeTerminal('termRobots', `root@hexbytes:~# curl https://${domain}/robots.txt`, 'info');
+
+    try {
+      const proxy = 'https://corsproxy.io/?';
+      const res = await fetch(proxy + encodeURIComponent(`https://${domain}/robots.txt`));
+      const text = await res.text();
+      
+      if(text.includes('<!DOCTYPE html>')) {
+         typeTerminal('termRobots', `[!] Target doesn't have a valid robots.txt (or returned HTML).`, 'warn');
+      } else {
+         typeTerminal('termRobots', text.substring(0, 500), 'ok');
+      }
+    } catch(e) {
+      typeTerminal('termRobots', `[X] Failed. Proxy blocked or site down.`, 'bad');
+    }
+    btn.disabled = false;
+  }
+
+  // --- TOOL 5: IP LOCATOR ---
+  async function scanIP() {
+    const ip = document.getElementById('ipAddress').value;
+    if(!ip) return alert('Enter IP Address');
+    const btn = document.getElementById('btnIp');
+    
+    btn.disabled = true;
+    clearTerminal('termIp');
+    typeTerminal('termIp', `root@hexbytes:~# geoip ${ip}`, 'info');
+
+    try {
+      const res = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await res.json();
+      
+      if(data.error) {
+        typeTerminal('termIp', `[X] Error: ${data.reason}`, 'bad');
+      } else {
+        typeTerminal('termIp', `[+] IP: ${data.ip}`, 'ok');
+        typeTerminal('termIp', `  City: ${data.city || 'N/A'}`, 'ok');
+        typeTerminal('termIp', `  Region: ${data.region || 'N/A'}`, 'ok');
+        typeTerminal('termIp', `  Country: ${data.country_name || 'N/A'}`, 'ok');
+        typeTerminal('termIp', `  ISP: ${data.org || 'N/A'}`, 'warn');
+      }
+    } catch(e) {
+      typeTerminal('termIp', `[X] Error: ${e.message}`, 'bad');
+    }
+    btn.disabled = false;
+  }
+
+  // --- TOOL 6: WHOIS LOOKUP ---
+  async function scanWhois() {
+    const input = document.getElementById('urlWhois').value;
+    if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input);
+    const btn = document.getElementById('btnWhois');
+    
+    btn.disabled = true;
+    clearTerminal('termWhois');
+    typeTerminal('termWhois', `root@hexbytes:~# whois ${domain}`, 'info');
+
+    try {
+      // Using free whois API (RDAP)
+      const res = await fetch(`https://rdap.org/domain/${domain}`);
+      
+      if(!res.ok) throw new Error('Domain not found in RDAP database');
+      const data = await res.json();
+      
+      typeTerminal('termWhois', `[+] Domain: ${data.ldhName || domain}`, 'ok');
+      
+      if(data.entities) {
+         typeTerminal('termWhois', `[+] Registrar/Entities Found:`, 'ok');
+         data.entities.slice(0,3).forEach(ent => {
+             let name = ent.vcardArray ? ent.vcardArray[1].find(x=>x[0]==='fn')?.[3] : ent.handle;
+             typeTerminal('termWhois', `  - ${name || 'Hidden'}`, 'info');
+         });
+      }
+      
+      if(data.events) {
+         const regEvent = data.events.find(e => e.eventAction === 'registration');
+         if(regEvent) typeTerminal('termWhois', `  Registered On: ${regEvent.eventDate}`, 'warn');
+      }
+      
+    } catch(e) {
+      typeTerminal('termWhois', `[X] Error: Could not fetch WHOIS.`, 'bad');
+    }
+    btn.disabled = false;
+  }
+
+</script>
+</body>
+</html>
