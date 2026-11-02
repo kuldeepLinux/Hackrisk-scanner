@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HackRisk Scanner | Hexbytes by Kuldeep</title>
+<meta name="description" content="Website security risk scanner — Hexbytes by Kuldeep, Cyber Security Executive.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #05080d; --card: #0d1117; --card2: #131a24;
+    --green: #00ff9d; --cyan: #00d9ff; --red: #ff3c3c;
+    --yellow: #ffc800; --text: #c9d1d9; --muted: #6e7681; --border: #1f2937;
+  }
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(0,255,157,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,157,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .container { max-width: 900px; margin: auto; padding: 2rem 1.5rem; }
+
+  /* Boot animation */
+  #boot {
+    position: fixed; inset: 0; background: var(--bg); z-index: 100;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 2rem; font-size: 0.9rem; transition: opacity 0.5s;
+  }
+  #boot p { color: var(--green); margin: 0.2rem 0; opacity: 0; animation: fadeIn 0.3s forwards; }
+  #boot p:nth-child(1) { animation-delay: 0.1s; }
+  #boot p:nth-child(2) { animation-delay: 0.4s; }
+  #boot p:nth-child(3) { animation-delay: 0.7s; }
+  #boot p:nth-child(4) { animation-delay: 1.0s; }
+  #boot p:nth-child(5) { animation-delay: 1.3s; color: var(--cyan); }
+  @keyframes fadeIn { to { opacity: 1; } }
+  #boot .bar { width: 200px; height: 4px; background: var(--border); border-radius: 2px; margin-top: 1rem; overflow: hidden; }
+  #boot .bar div { width: 0%; height: 100%; background: var(--green); animation: load 1.5s ease forwards 0.3s; }
+  @keyframes load { to { width: 100%; } }
+
+  /* Header */
+  header { text-align: center; padding: 2rem 0 1rem; }
+  .logo {
+    font-size: 2.4rem; font-weight: 800; letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 30px rgba(0,255,157,0.3);
+  }
+  .logo::before { content: ">_ "; color: var(--green); }
+  .tagline { color: var(--muted); margin-top: 0.4rem; font-size: 0.9rem; }
+  .tagline span { color: var(--green); }
+  .back { display: inline-block; margin-top: 0.8rem; color: var(--cyan); text-decoration: none; font-size: 0.85rem; }
+  .back:hover { text-decoration: underline; }
+
+  /* Card */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0;
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--cyan), var(--green));
+  }
+
+  /* Input */
+  .scanner-input { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .scanner-input input {
+    flex: 1; min-width: 200px; padding: 0.9rem 1rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font-family: inherit; font-size: 1rem; outline: none; transition: border 0.2s;
+  }
+  .scanner-input input:focus { border-color: var(--green); box-shadow: 0 0 10px rgba(0,255,157,0.2); }
+  .scanner-input button {
+    padding: 0.9rem 1.5rem; background: linear-gradient(90deg, var(--green), var(--cyan));
+    border: none; border-radius: 6px; color: #05080d; font-weight: 700;
+    font-family: inherit; cursor: pointer; font-size: 0.95rem; transition: transform 0.1s;
+  }
+  .scanner-input button:hover { transform: scale(1.02); }
+  .scanner-input button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Terminal output */
+  #terminal {
+    background: #000; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; margin-top: 1.2rem; font-size: 0.85rem; display: none;
+    max-height: 500px; overflow-y: auto;
+  }
+  #terminal .line { margin: 0.3rem 0; }
+  #terminal .ok { color: var(--green); }
+  #terminal .warn { color: var(--yellow); }
+  #terminal .bad { color: var(--red); }
+  #terminal .info { color: var(--cyan); }
+  #terminal .dim { color: var(--muted); }
+  #terminal .cursor { display: inline-block; width: 8px; height: 14px; background: var(--green); animation: blink 1s infinite; vertical-align: middle; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Score box */
+  .score-box { text-align: center; padding: 1.8rem; border-radius: 8px; margin-top: 1.2rem; }
+  .score-number { font-size: 3.5rem; font-weight: 800; }
+  .score-label { font-size: 1.2rem; margin-top: 0.3rem; font-weight: 700; }
+  .score-bar { height: 8px; background: var(--border); border-radius: 4px; margin: 1rem 0 0.5rem; overflow: hidden; }
+  .score-bar div { height: 100%; transition: width 1s ease; }
+  .low { background: rgba(0,255,157,0.1); border: 1px solid var(--green); }
+  .low .score-number, .low .score-label { color: var(--green); }
+  .low .score-bar div { background: var(--green); }
+  .medium { background: rgba(255,200,0,0.1); border: 1px solid var(--yellow); }
+  .medium .score-number, .medium .score-label { color: var(--yellow); }
+  .medium .score-bar div { background: var(--yellow); }
+  .high { background: rgba(255,60,60,0.1); border: 1px solid var(--red); }
+  .high .score-number, .high .score-label { color: var(--red); }
+  .high .score-bar div { background: var(--red); }
+
+  /* Fix section */
+  .fix-section { margin-top: 1.5rem; display: none; }
+  .fix-section h3 { color: var(--cyan); font-size: 1rem; margin-bottom: 0.8rem; }
+  .fix-section h3::before { content: "▸ "; color: var(--green); }
+  .fix-item {
+    background: var(--card2); border-left: 3px solid var(--red);
+    padding: 0.8rem 1rem; margin: 0.5rem 0; border-radius: 4px; font-size: 0.85rem;
+  }
+  .fix-item strong { color: var(--text); }
+  .fix-item code { background: var(--bg); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--green); font-size: 0.8rem; }
+  .fix-item .why { color: var(--muted); font-size: 0.8rem; margin-top: 0.3rem; }
+
+  /* CTA */
+  .cta {
+    background: linear-gradient(135deg, rgba(0,255,157,0.1), rgba(0,217,255,0.1));
+    border: 1px solid var(--green); border-radius: 10px;
+    padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+  }
+  .cta h3 { color: var(--green); font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .cta p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+  .cta a {
+    display: inline-block; padding: 0.8rem 1.8rem;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    color: #05080d; text-decoration: none; border-radius: 6px;
+    font-weight: 700; font-size: 0.9rem; transition: transform 0.1s;
+  }
+  .cta a:hover { transform: scale(1.03); }
+
+  /* Disclaimer */
+  .disclaimer {
+    font-size: 0.8rem; color: var(--muted); margin-top: 1rem; padding: 0.8rem;
+    background: rgba(255,255,255,0.03); border-left: 3px solid var(--cyan); border-radius: 4px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 2rem 0; color: var(--muted);
+    font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+  footer a { color: var(--cyan); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .logo { font-size: 1.8rem; }
+    .container { padding: 1rem; }
+    .score-number { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Boot screen -->
+<div id="boot">
+  <p>[ INIT ] Loading HackRisk engine...</p>
+  <p>[ OK ] Security modules loaded</p>
+  <p>[ OK ] CORS proxy connected</p>
+  <p>[ OK ] Ready to scan</p>
+  <p>⬡ HEXBYTES — Made by Kuldeep</p>
+  <div class="bar"><div></div></div>
+</div>
+
+<div class="container">
+
+  <header>
+    <div class="logo">HackRisk Scanner</div>
+    <p class="tagline">⬡ Hexbytes — Made by <span>Kuldeep</span>, Cyber Security Executive</p>
+    <a class="back" href="https://kuldeeplinux.github.io/Hex-kuldeep/">← Back to portfolio</a>
+  </header>
+
+  <div class="card">
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">
+      Website ka URL daalo — security risk score aur missing fixes jaano.
+    </p>
+    <div class="scanner-input">
+      <input type="text" id="urlInput" placeholder="example.com" autocomplete="off">
+      <button id="scanBtn" onclick="scanWebsite()">Scan</button>
+    </div>
+
+    <!-- Terminal output -->
+    <div id="terminal"></div>
+
+    <!-- Score -->
+    <div id="score"></div>
+
+    <!-- Fixes -->
+    <div id="fixes" class="fix-section">
+      <h3>Kya missing hai & kaise fix karein</h3>
+      <div id="fixList"></div>
+    </div>
+
+    <!-- CTA -->
+    <div id="cta" class="cta">
+      <h3>🛠️ Fix karwana hai?</h3>
+      <p>Yeh issues professionally fix karwane ke liye Hexbytes se contact karo.</p>
+      <a href="https://hexbytes.in/" target="_blank">Contact Hexbytes →</a>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ Yeh tool sirf <strong>known security misconfigurations</strong> par based risk score deta hai.
+      Real hacking probability unpredictable hoti hai. Sirf apni ya authorized websites par use karo.
+    </div>
+  </div>
+
+  <footer>
+    <p>⬡ <strong>Hexbytes</strong> — Made by Kuldeep · <a href="https://github.com/kuldeepLinux" target="_blank">GitHub</a> · <a href="https://hexbytes.in/" target="_blank">hexbytes.in</a></p>
+    <p style="margin-top:0.4rem;font-size:0.8rem;">© 2026 Hexbytes</p>
+  </footer>
+</div>
+
+<script>
+// Boot screen hide
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const boot = document.getElementById('boot');
+    boot.style.opacity = '0';
+    setTimeout(() => boot.remove(), 500);
+  }, 2000);
+});
+
+// Fix recommendations
+const FIXES = {
+  https: {
+    title: 'HTTPS enable karo',
+    why: 'HTTP par data plain text mein jata hai — password, cookies sab intercept ho sakte hain.',
+    how: 'SSL certificate lo (Let\'s Encrypt free hai) aur server par install karo. HTTP → HTTPS redirect lagao.',
+  },
+  hsts: {
+    title: 'Strict-Transport-Security (HSTS) header add karo',
+    why: 'Browser ko force karta hai ki sirf HTTPS use kare.',
+    how: 'Header: <code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code>',
+  },
+  csp: {
+    title: 'Content-Security-Policy (CSP) header add karo',
+    why: 'XSS aur injection attacks rokta hai.',
+    how: 'Header: <code>Content-Security-Policy: default-src \'self\'</code> (apni site ke hisaab se customize karo)',
+  },
+  xframe: {
+    title: 'X-Frame-Options header add karo',
+    why: 'Clickjacking attacks rokta hai.',
+    how: 'Header: <code>X-Frame-Options: DENY</code> ya <code>SAMEORIGIN</code>',
+  },
+  xcontent: {
+    title: 'X-Content-Type-Options header add karo',
+    why: 'MIME sniffing attacks rokta hai.',
+    how: 'Header: <code>X-Content-Type-Options: nosniff</code>',
+  },
+  server: {
+    title: 'Server version leak band karo',
+    why: 'Attacker ko pata chalta hai ki kaunsa server/version hai — uske known exploits use kar sakta hai.',
+    how: 'Nginx: <code>server_tokens off;</code> | Apache: <code>ServerTokens Prod</code> | X-Powered-By header hatao.',
+  },
+  robots: {
+    title: 'robots.txt mein sensitive paths expose hain',
+    why: 'robots.txt public hota hai — attacker ko admin/backup paths ka pata chal jata hai.',
+    how: 'robots.txt se sensitive paths hatao. Real protection ke liye authentication lagao, robots.txt par depend mat karo.',
+  },
+  paths: {
+    title: 'Sensitive paths publicly accessible hain',
+    why: 'Admin panels, backup files, .env files — attacker directly access kar sakta hai.',
+    how: 'In paths par authentication lagao ya access block karo (firewall/nginx rules).',
+  },
+  ssl: {
+    title: 'SSL certificate issue',
+    why: 'Expired ya invalid SSL se browser warning aati hai aur trust khatam hota hai.',
+    how: 'SSL certificate renew karo. Let\'s Encrypt auto-renewal setup karo.',
+  },
+};
+
+async function scanWebsite() {
+  const urlInput = document.getElementById('urlInput');
+  const btn = document.getElementById('scanBtn');
+  const terminal = document.getElementById('terminal');
+  const scoreDiv = document.getElementById('score');
+  const fixesDiv = document.getElementById('fixes');
+  const fixList = document.getElementById('fixList');
+  const cta = document.getElementById('cta');
+
+  let url = urlInput.value.trim();
+  if (!url) { alert('URL daalo pehle!'); return; }
+  if (!url.startsWith('http')) url = 'https://' + url;
+
+  btn.disabled = true; btn.textContent = 'Scanning...';
+  terminal.style.display = 'block';
+  terminal.innerHTML = '';
+  scoreDiv.innerHTML = '';
+  fixesDiv.style.display = 'none';
+  cta.style.display = 'none';
+
+  const addLine = (text, cls = '') => {
+    const d = document.createElement('div');
+    d.className = 'line ' + cls;
+    d.innerHTML = text;
+    terminal.appendChild(d);
+    terminal.scrollTop = terminal.scrollHeight;
+  };
+
+  addLine(`<span class="info">$</span> hackrisk scan ${url}`, 'dim');
+  addLine(`<span class="dim">[*] Connecting...</span>`);
+
+  try {
+    const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const resp = await fetch(proxy);
+    addLine(`<span class="ok">[✓] Connected — HTTP ${resp.status}</span>`);
+
+    const headers = {};
+    resp.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+
+    const results = [];
+    let total = 0;
+
+    // HTTPS
+    const httpsOk = url.startsWith('https://');
+    if (!httpsOk) { total += 20; results.push('https'); addLine(`<span class="bad">[✗] HTTPS not enabled (+20)</span>`); }
+    else addLine(`<span class="ok">[✓] HTTPS enabled (+0)</span>`);
+
+    // Headers
+    const requiredHeaders = {
+      'strict-transport-security': ['hsts', 10],
+      'content-security-policy': ['csp', 10],
+      'x-frame-options': ['xframe', 8],
+      'x-content-type-options': ['xcontent', 5],
+    };
+    Object.entries(requiredHeaders).forEach(([h, [key, w]]) => {
+      if (!headers[h]) {
+        total += w; results.push(key);
+        addLine(`<span class="bad">[✗] Missing: ${h} (+${w})</span>`);
+      } else {
+        addLine(`<span class="ok">[✓] ${h} present</span>`);
+      }
+    });
+
+    // Server leak
+    const server = headers['server'] || headers['x-powered-by'];
+    if (server) {
+      total += 10; results.push('server');
+      addLine(`<span class="warn">[!] Version leak: ${server} (+10)</span>`);
+    } else {
+      addLine(`<span class="ok">[✓] No server version leak</span>`);
+    }
+
+    // robots.txt
+    try {
+      const base = new URL(url).origin;
+      addLine(`<span class="dim">[*] Checking robots.txt...</span>`);
+      const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(base + '/robots.txt'));
+      const text = await r.text();
+      const risky = text.split('\n').filter(l => /disallow/i.test(l) && /(admin|backup|\.git|config)/i.test(l));
+      if (risky.length) {
+        total += 10; results.push('robots');
+        addLine(`<span class="warn">[!] robots.txt leaks ${risky.length} sensitive paths (+10)</span>`);
+      } else {
+        addLine(`<span class="ok">[✓] robots.txt clean</span>`);
+      }
+    } catch {
+      addLine(`<span class="dim">[i] robots.txt not reachable</span>`);
+    }
+
+    total = Math.min(total, 100);
+
+    // Score
+    let cls, label, advice;
+    if (total >= 60) { cls = 'high'; label = '🔴 HIGH RISK'; advice = 'Turant security fix karo!'; }
+    else if (total >= 30) { cls = 'medium'; label = '🟡 MEDIUM RISK'; advice = 'Kuch gaps hain — fix karna chahiye.'; }
+    else { cls = 'low'; label = '🟢 LOW RISK'; advice = 'Security posture accha hai!'; }
+
+    addLine(`<span class="info">[*] Scan complete — Score: ${total}/100</span>`);
+
+    scoreDiv.innerHTML = `
+      <div class="score-box ${cls}">
+        <div class="score-number">${total}<span style="font-size:1.2rem;opacity:0.6;">/100</span></div>
+        <div class="score-label">${label}</div>
+        <div style="margin-top:0.4rem;font-size:0.9rem;">${advice}</div>
+        <div class="score-bar"><div style="width:${total}%"></div></div>
+      </div>`;
+
+    // Fixes
+    if (results.length > 0) {
+      fixList.innerHTML = '';
+      results.forEach(key => {
+        const f = FIXES[key];
+        if (!f) return;
+        fixList.innerHTML += `
+          <div class="fix-item">
+            <strong>${f.title}</strong>
+            <div class="why">${f.why}</div>
+            <div style="margin-top:0.4rem;font-size:0.8rem;color:var(--green);">Fix: ${f.how}</div>
+          </div>`;
+      });
+      fixesDiv.style.display = 'block';
+      cta.style.display = 'block';
+    } else {
+      cta.style.display = 'block';
+      cta.querySelector('p').textContent = 'Sab checks pass! Lekin advanced security audit ke liye Hexbytes se contact kar sakte ho.';
+    }
+
+  } catch (e) {
+    addLine(`<span class="bad">[✗] Scan failed: ${e.message}</span>`);
+    addLine(`<span class="dim">[i] CORS proxy ya network issue ho sakta hai. Kuch websites block karti hain.</span>`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Scan';
+  }
+}
+</script>
+</body>
+</html>
