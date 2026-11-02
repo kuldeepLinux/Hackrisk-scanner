@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexbytes CyberSec | Kuldeep</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050505;
+    --text: #ffffff;
+    --muted: #888888;
+    --primary: #00ff9d;
+    --border: #222222;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- LOGIN SCREEN --- */
+  #loginScreen {
+    position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .login-box {
+    border: 1px solid var(--border); padding: 3rem 2rem; width: 90%; max-width: 400px;
+    text-align: center; background: #000;
+  }
+  .login-box h2 {
+    font-weight: 600; margin-bottom: 0.5rem; font-size: 1.5rem; letter-spacing: 1px;
+  }
+  .login-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .login-box input {
+    width: 100%; padding: 1rem; margin-bottom: 1rem; background: #000;
+    border: 1px solid var(--border); color: var(--text); font-family: 'Fira Code'; outline: none;
+  }
+  .login-box input:focus { border-color: var(--text); }
+  .login-box button {
+    width: 100%; padding: 1rem; background: var(--text); border: none;
+    color: #000; font-weight: 700; cursor: pointer; text-transform: uppercase;
+  }
+  .login-box button:hover { background: var(--primary); }
+  #loginError { color: #ff3c3c; font-size: 0.85rem; margin-top: 1rem; display: none; }
+
+  /* --- MAIN DASHBOARD --- */
+  #appContainer { display: none; width: 100%; height: 100vh; flex-direction: column; }
+  
+  .header {
+    padding: 2rem 4rem; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 2px; }
+  .header span { color: var(--primary); }
+
+  .grid-container {
+    flex: 1; display: grid; grid-template-columns: repeat(2, 1fr);
+    padding: 4rem; gap: 2rem; overflow-y: auto;
+  }
+
+  .grid-item {
+    border: 1px solid var(--border); padding: 3rem; cursor: pointer;
+    transition: 0.3s ease; position: relative; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .grid-item h2 { font-size: 2.5rem; font-weight: 400; margin-bottom: 1rem; z-index: 2; transition: 0.3s; }
+  .grid-item p { color: var(--muted); font-size: 1rem; z-index: 2; max-width: 80%; transition: 0.3s; }
+  
+  .grid-item:hover { background: #0a0a0a; border-color: var(--primary); }
+  .grid-item:hover h2 { color: var(--primary); transform: translateX(10px); }
+  .grid-item:hover p { transform: translateX(10px); }
+
+  /* --- TOOL SCREEN --- */
+  .tool-screen {
+    position: absolute; inset: 0; background: var(--bg); z-index: 100;
+    display: none; flex-direction: column; padding: 4rem;
+    animation: slideUp 0.4s ease forwards;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .tool-screen.active { display: flex; }
+
+  .back-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 0.8rem 2rem; width: fit-content; cursor: pointer; margin-bottom: 3rem;
+    font-family: 'Fira Code'; text-transform: uppercase; transition: 0.3s;
+  }
+  .back-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .tool-content { max-width: 900px; margin: 0 auto; width: 100%; }
+  .tool-title { font-size: 3rem; font-weight: 400; margin-bottom: 2rem; }
+  
+  .input-group { display: flex; border: 1px solid var(--border); margin-bottom: 2rem; }
+  .input-group input {
+    flex: 1; padding: 1.5rem; background: transparent; border: none;
+    color: var(--text); font-family: 'Fira Code'; font-size: 1.2rem; outline: none;
+  }
+  .input-group button {
+    padding: 0 3rem; background: var(--text); color: #000; border: none;
+    font-weight: 700; cursor: pointer; text-transform: uppercase; transition: 0.3s;
+  }
+  .input-group button:hover { background: var(--primary); }
+  .input-group button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Terminal */
+  .terminal {
+    border: 1px solid var(--border); padding: 2rem; font-family: 'Fira Code';
+    font-size: 1rem; min-height: 250px; background: #000; display: none;
+    word-wrap: break-word; overflow-wrap: break-word;
+  }
+  .terminal .line { margin-bottom: 10px; line-height: 1.6; }
+  .ok { color: var(--primary); }
+  .bad { color: #ff3c3c; }
+  .warn { color: #ffc800; }
+  .info { color: var(--muted); }
+
+  .cursor { display: inline-block; width: 10px; height: 18px; background-color: var(--primary); animation: blink 1s step-end infinite; margin-left: 5px; vertical-align: middle; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .report-btn {
+    display: inline-block; margin-top: 15px; padding: 0.8rem 1.5rem;
+    border: 1px solid var(--primary); color: var(--primary); text-decoration: none;
+    transition: 0.3s; font-family: 'Space Grotesk'; font-weight: 600;
+  }
+  .report-btn:hover { background: var(--primary); color: #000; }
+
+  /* --- MOBILE RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .header { padding: 1.5rem; }
+    .grid-container { grid-template-columns: 1fr; padding: 1.5rem; gap: 1rem; }
+    .grid-item { padding: 2rem; }
+    .grid-item h2 { font-size: 1.8rem; }
+    .tool-screen { padding: 1.5rem; }
+    .tool-title { font-size: 2rem; }
+    .input-group { flex-direction: column; }
+    .input-group button { padding: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <h2>SECURE LOGIN</h2>
+      <p>Hexbytes CyberSec Dashboard</p>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password" onkeypress="handleEnter(event)">
+      <button onclick="checkLogin()">Authenticate</button>
+      <div id="loginError">[X] Access Denied.</div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="appContainer">
+    
+    <header class="header">
+      <h1>HEXBYTES<span>_</span></h1>
+      <div style="color: var(--muted); font-family: 'Fira Code'; font-size: 0.9rem;">Made by Kuldeep</div>
+    </header>
+
+    <div class="grid-container">
+      <div class="grid-item" onclick="openTool('headers', 'SECURITY HEADERS')">
+        <h2>Security Headers</h2>
+        <p>Analyze HTTP security headers and find vulnerabilities.</p>
+      </div>
+      <div class="grid-item" onclick="openTool('dns', 'DNS LOOKUP')">
+        <h2>DNS Lookup</h2>
+        <p>Resolve domain names to IP addresses securely.</p>
+      </div>
+      <div class="grid-item" onclick="openTool('ssl', 'SSL CHECKER')">
+        <h2>SSL Checker</h2>
+        <p>Verify SSL/TLS certificates and expiry dates.</p>
+      </div>
+      <div class="grid-item" onclick="openTool('ip', 'IP LOCATION')">
+        <h2>IP Location</h2>
+        <p>Find the geographical location of any IP address.</p>
+      </div>
+    </div>
+
+    <!-- TOOL SCREENS -->
+    <div id="tool-screen" class="tool-screen">
+      <button class="back-btn" onclick="closeTool()">← BACK TO DASHBOARD</button>
+      
+      <div class="tool-content">
+        <div class="tool-title" id="toolTitle">Security Headers</div>
+        
+        <!-- HEADERS -->
+        <div id="headers" class="tool-inner" style="display: none;">
+          <div class="input-group">
+            <input type="text" id="urlHeaders" placeholder="Enter domain (e.g. hexbytes.in)">
+            <button onclick="scanHeaders()" id="btnHeaders">Scan</button>
+          </div>
+          <div id="termHeaders" class="terminal"></div>
+        </div>
+
+        <!-- DNS -->
+        <div id="dns" class="tool-inner" style="display: none;">
+          <div class="input-group">
+            <input type="text" id="urlDns" placeholder="Enter domain (e.g. google.com)">
+            <button onclick="scanDNS()" id="btnDns">Lookup</button>
+          </div>
+          <div id="termDns" class="terminal"></div>
+        </div>
+
+        <!-- SSL -->
+        <div id="ssl" class="tool-inner" style="display: none;">
+          <div class="input-group">
+            <input type="text" id="urlSsl" placeholder="Enter domain (e.g. github.com)">
+            <button onclick="checkSSL()" id="btnSsl">Verify</button>
+          </div>
+          <div id="termSsl" class="terminal"></div>
+        </div>
+
+        <!-- IP -->
+        <div id="ip" class="tool-inner" style="display: none;">
+          <div class="input-group">
+            <input type="text" id="ipAddress" placeholder="Enter IP (e.g. 8.8.8.8)">
+            <button onclick="scanIP()" id="btnIp">Locate</button>
+          </div>
+          <div id="termIp" class="terminal"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  // LOGIN
+  function checkLogin() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    if (user === 'Hexbytes' && pass === 'Hexbytessourabh') {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'flex';
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+      setTimeout(() => { document.getElementById('loginError').style.display = 'none'; }, 3000);
+    }
+  }
+  function handleEnter(e) { if (e.key === 'Enter') checkLogin(); }
+
+  // NAVIGATION
+  function openTool(toolId, title) {
+    document.querySelectorAll('.tool-inner').forEach(el => el.style.display = 'none');
+    document.getElementById(toolId).style.display = 'block';
+    document.getElementById('toolTitle').innerText = title;
+    document.getElementById('tool-screen').classList.add('active');
+  }
+
+  function closeTool() {
+    document.getElementById('tool-screen').classList.remove('active');
+  }
+
+  function typeTerminal(elementId, text, colorClass = '') {
+    const term = document.getElementById(elementId);
+    term.style.display = 'block';
+    const oldCursor = term.querySelector('.cursor-container');
+    if(oldCursor) oldCursor.remove();
+    const line = document.createElement('div');
+    line.className = 'line';
+    line.innerHTML = `<span class="${colorClass}">${text}</span>`;
+    term.appendChild(line);
+    const cursorDiv = document.createElement('div');
+    cursorDiv.className = 'cursor-container';
+    cursorDiv.innerHTML = `<span class="info">root@hexbytes:~#</span> <span class="cursor"></span>`;
+    term.appendChild(cursorDiv);
+    term.scrollTop = term.scrollHeight;
+  }
+
+  function clearTerminal(elementId) {
+    const term = document.getElementById(elementId);
+    term.style.display = 'block';
+    term.innerHTML = `<div class="line"><span class="info">root@hexbytes:~#</span> <span class="cursor"></span></div>`;
+  }
+
+  function cleanDomain(input) { return input.replace(/^https?:\/\//i, '').replace(/\/.*$/, ''); }
+
+  // 1. SECURITY HEADERS
+  async function scanHeaders() {
+    const input = document.getElementById('urlHeaders').value;
+    if(!input) return alert('Enter Target URL');
+    const domain = cleanDomain(input); const btn = document.getElementById('btnHeaders');
+    btn.disabled = true; clearTerminal('termHeaders');
+    typeTerminal('termHeaders', `Initiating accurate header scan for: ${domain}`, 'info');
+
+    try {
+      const targetUrl = `https://securityheaders.com/?q=${domain}&followRedirects=on&hide=on`;
+      const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+      const res = await fetch(proxyUrl);
+      if(!res.ok) throw new Error(`HTTP Error ${res.status}`);
+      const html = await res.text();
+      
+      const gradeMatch = html.match(/class="[^"]*reportTitle[^"]*"[^>]*>[\s\S]*?label[^"]*"([^"]+)"?/i);
+      let grade = 'N/A';
+      if (gradeMatch && gradeMatch[1]) {
+        grade = gradeMatch[1].replace(/label[- ]/gi, '').replace(/success|warning|danger/gi, '').trim();
+        if(grade.length > 3) grade = grade.substring(0, 2);
+      }
+      typeTerminal('termHeaders', `[+] Security Grade: ${grade}`, 'ok');
+
+      const missingRegex = /<div[^>]*class="[^"]*missing[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+      let match, missingList = [];
+      while ((match = missingRegex.exec(html)) !== null) {
+        let headerName = match[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        if (headerName && headerName.length < 50) missingList.push(headerName);
+      }
+
+      if(missingList.length > 0) {
+        typeTerminal('termHeaders', `[!] ${missingList.length} Missing/Weak Headers Found:`, 'warn');
+        missingList.forEach(h => typeTerminal('termHeaders', `  ➔ ${h}`, 'bad'));
+        typeTerminal('termHeaders', `<br><a href="${targetUrl}" target="_blank" class="report-btn">🔗 View Full Report</a>`, '');
+      } else {
+        typeTerminal('termHeaders', `[✓] Excellent! All major headers are properly configured.`, 'ok');
+      }
+    } catch(e) {
+      typeTerminal('termHeaders', `[X] Scan Failed: ${e.message}`, 'bad');
+      typeTerminal('termHeaders', `[i] Please try again after 10 seconds.`, 'warn');
+    }
+    btn.disabled = false;
+  }
+
+  // 2. DNS LOOKUP
+  async function scanDNS() {
+    const input = document.getElementById('urlDns').value; if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input); const btn = document.getElementById('btnDns');
+    btn.disabled = true; clearTerminal('termDns'); typeTerminal('termDns', `Querying DNS for: ${domain}`, 'info');
+    try {
+      const res = await fetch(`https://dns.google/resolve?name=${domain}&type=A`); const data = await res.json();
+      if(data.Answer) { 
+        typeTerminal('termDns', `[+] Resolved IPs:`, 'ok'); 
+        data.Answer.forEach(r => typeTerminal('termDns', `  ➔ ${r.data}`, 'ok')); 
+      }
+      else typeTerminal('termDns', `[!] No A records found.`, 'warn');
+    } catch(e) { typeTerminal('termDns', `[X] Error: ${e.message}`, 'bad'); }
+    btn.disabled = false;
+  }
+
+  // 3. SSL CHECKER
+  async function checkSSL() {
+    const input = document.getElementById('urlSsl').value; if(!input) return alert('Enter Domain');
+    const domain = cleanDomain(input); const btn = document.getElementById('btnSsl');
+    btn.disabled = true; clearTerminal('termSsl'); typeTerminal('termSsl', `Checking SSL for: ${domain}`, 'info');
+    try {
+      const res = await fetch('https://mate.tools/api/v1/ssl-check.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: domain })
+      });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if(data.valid) {
+        typeTerminal('termSsl', `[✓] Certificate Valid`, 'ok');
+        typeTerminal('termSsl', `  Issuer: ${data.issuer || 'N/A'}`, 'info');
+        typeTerminal('termSsl', `  Expiry: ${data.expiry_date || 'N/A'}`, 'warn');
+      } else {
+        typeTerminal('termSsl', `[!] Certificate INVALID or EXPIRED`, 'bad');
+      }
+    } catch(e) { typeTerminal('termSsl', `[X] SSL Check Failed.`, 'bad'); }
+    btn.disabled = false;
+  }
+
+  // 4. IP LOCATOR
+  async function scanIP() {
+    const ip = document.getElementById('ipAddress').value; if(!ip) return alert('Enter IP');
+    const btn = document.getElementById('btnIp'); btn.disabled = true; clearTerminal('termIp'); typeTerminal('termIp', `Tracing IP: ${ip}`, 'info');
+    try {
+      const res = await fetch(`https://ipapi.co/${ip}/json/`); const data = await res.json();
+      if(data.error) typeTerminal('termIp', `[X] ${data.reason}`, 'bad');
+      else { 
+        typeTerminal('termIp', `[+] Location Found:`, 'ok'); 
+        typeTerminal('termIp', `  City: ${data.city}, ${data.country_name}`, 'info'); 
+        typeTerminal('termIp', `  ISP: ${data.org}`, 'warn'); 
+      }
+    } catch(e) { typeTerminal('termIp', `[X] Trace Failed.`, 'bad'); }
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
